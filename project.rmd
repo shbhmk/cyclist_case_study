@@ -1,0 +1,125 @@
+---
+title: "cyclist_case_study"
+author: "Shubham Kushwaha"
+date: "21/08/2021"
+output:
+  html_document:
+    df_print: paged
+---
+
+## Libraries
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+library(dplyr)
+
+```
+## importing the data sets
+```{r}
+setwd("C:/Users/shbhm/Desktop/case_study")
+df1 <- read.csv("2021_jan.csv")
+df2 <- read.csv("2021_feb.csv")
+df3 <- read.csv("2021_mar.csv")
+df4 <- read.csv("2021_april.csv")
+df5 <- read.csv("2021_may.csv")
+df6 <- read.csv("2021_jun.csv")
+df7 <- read.csv("2021_jul.csv")
+df8 <- read.csv("2021_august.csv")
+df9 <- read.csv("2020_sep.csv")
+df10 <- read.csv("2020_oct.csv")
+df11 <- read.csv("2020_nov.csv")
+df12 <- read.csv("2020_dec.csv")
+```
+## Changing the data types so we can combine all the data frames into sigle data frame
+```{r}
+df11 <- mutate(df11, end_station_id = as.character(end_station_id)) 
+df11 <- mutate(df11, start_station_id = as.character(start_station_id))
+df9 <- mutate(df9, start_station_id = as.character(start_station_id))
+df9 <- mutate(df9, end_station_id = as.character(end_station_id))
+df10 <- mutate(df10, end_station_id = as.character(end_station_id))
+df10 <- mutate(df10, start_station_id = as.character(start_station_id))
+df12 <- mutate(df12, start_station_id = as.character(start_station_id))
+df12 <- mutate(df12, end_station_id = as.character(end_station_id))
+```
+## combining all the data frames into a single data frame
+```{r}
+all <- bind_rows(df1,df2,df3,df4,df5,df6,df7,df8,df9,df10,df11,df12)
+str(all)
+```
+## cleaning the data
+```{r}
+unique(all[c("member_casual")])
+all <- all %>%       # to remove all the empty cells
+  na_if("") %>%
+  na.omit()
+all$ended_at <- as.POSIXct(all$ended_at)
+all$started_at <- as.POSIXct(all$started_at)
+
+```
+## adding date, days, month, year, days_of_week columns, ride_length
+```{r}
+all$date <- as.Date(all$started_at)
+all$month <- format(as.Date(all$date), "%m")
+all$day <-format(as.Date(all$date), "%d") 
+all$year <- format(as.Date(all$date), "%Y")
+all$days_of_week <- format(as.Date(all$date), "%A")
+all$ride_length <- difftime(all$ended_at,all$started_at)
+str(all)
+unique(all[c("start_station_name")])
+unique(all[c("end_station_name")])
+unique(all[c("ride_length")])
+all2 <-all[!(all$ride_length < 0),]
+```
+## Descriptive analysis
+```{r}
+mean(all2$ride_length)
+median(all2$ride_length)
+max(all2$ride_length)
+min(all2$ride_length)
+aggregate(all2$ride_length ~ all2$member_casual, FUN= mean)
+aggregate(all2$ride_length ~ all2$member_casual, FUN= median)
+aggregate(all2$ride_length ~ all2$member_casual, FUN= max)
+aggregate(all2$ride_length ~ all2$member_casual, FUN= min)
+aggregate(all2$ride_length ~ all2$member_casual + all2$days_of_week, FUN= mean)
+all2 %>%
+   mutate(weekday = wday(started_at, label = TRUE)) %>%
+   group_by(member_casual,weekday) %>%
+   summarise(number_of_rides = n(), average_duration = mean(ride_length)) %>%
+   arrange(member_casual,weekday)
+```
+## visualization
+```{r}
+# graph between number_of_rides and week days
+all2 %>%
+  mutate(weekday = wday(started_at, label = TRUE)) %>%
+  group_by(member_casual, weekday) %>%
+  summarise(number_of_rides = n(), average_duration = mean(ride_length), options(scipen = n)) %>%
+  arrange(member_casual, weekday) %>%
+  ggplot(aes(x = number_of_rides, y = weekday)) + geom_col(position = "dodge")
+#graph between weekdays and avg_duration
+all2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge")
+#graph between weekdays and numbers_of_rides fill = member_casual
+all2 %>%
+  mutate(weekday = wday(started_at, label = TRUE)) %>%
+  group_by(member_casual, weekday) %>%
+  summarise(number_of_rides = n(), average_duration = mean(ride_length), options(scipen = n)) %>%
+  arrange(member_casual, weekday) %>%
+  ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) + geom_col(position = "dodge")
+```
+
+
+
+
+
+
+
